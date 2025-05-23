@@ -1,0 +1,72 @@
+name: Inertia build & deploy
+
+concurrency:
+  group: production
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: main-standby
+env:
+  SERVER_USER: ${{ secrets.SERVER_USER }}
+  SERVER_IP: ${{ secrets.SERVER_IP }}
+  SSH_KEY_VPS: ${{ secrets.SSH_KEY_VPS }}
+  SERVER_DESTINATION_DIR: /app/website3/
+permissions:
+  contents: read
+
+jobs:
+
+  prepare-dist:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v4
+    - run: |
+        cp -R * /dist/
+
+  # TO REDO : ADD SSR
+  install-deps:
+    needs: prepare-dist
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        include:
+        - file_name: package-lock.json
+          dir_name: node_modules
+          command: npm install
+        - file_name: composer.json
+          dir_name: vendor
+          command: composer install
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: php ./.github/workflows/dependency.php "${{ matrix.file_name }}" "${{ matrix.dir_name }}" "${{ matrix.command }}"
+
+  build-assets:
+    needs: install-deps
+    runs-on: self-hosted
+    steps:
+    - run: cd /dist && npm run build:ssr
+
+  deploy:
+    needs: build-assets
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v4
+    - name: check
+      run: |
+        echo "check node_modules"
+        test -d "/dist/node_modules" || exit 1;
+        echo "check dist"
+        test -d "/dist/public/build" || exit 1;
+        echo "check vendor"
+        test -d "/dist/vendor" || exit 1;
+        echo "check done";
+    - name: rsync
+      run: |
+        mkdir -p ~/.ssh
+        eval $(ssh-agent -s)
+        ssh-add - <<< "$SSH_KEY_VPS"
+        ssh-keyscan -t rsa -H $SERVER_IP >> ~/.ssh/known_hosts
+        rsync -rhz --delay-updates --stats --delete-before --exclude-from=./.exclude-rsync /dist/ $SERVER_USER@$SERVER_IP:$SERVER_DESTINATION_DIR

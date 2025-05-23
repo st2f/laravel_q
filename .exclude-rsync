@@ -1,0 +1,8 @@
+.env
+.git/
+dbdata
+docker-compose.yml
+storage/framework
+storage/logs
+storage/pail
+bootstrap/cache
