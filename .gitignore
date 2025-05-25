@@ -1,23 +1,28 @@
-#/bootstrap/ssr
+# data
+/dbdata
+
+# Laravel
+/vendor
+/node_modules
+/public/storage
+/storage/*.key
+/storage/pail
 .env
 .env.backup
 .env.production
 .env.testing
-.fleet
-.idea
-.phpactor.json
-.phpunit.cache
 .phpunit.result.cache
-auth.json
-dbdata
-node_modules
+
+# Logs and IDE
 npm-debug.log
-!public/build
-public/build/*
-!public/build/manifest.json
-public/hot
-public/storage
-storage/*.key
-storage/pail
-vendor
 yarn-error.log
+.DS_Store
+.idea/
+.vscode/
+
+# Laravel build outputs
+public/build
+public/hot
+bootstrap/cache/*.php
+bootstrap/ssr
+
