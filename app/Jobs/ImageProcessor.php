@@ -2,19 +2,16 @@
 
 namespace App\Jobs;
 
-use App\Mail\SendUserImage;
+use Illuminate\Bus\Batch;
+use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class ImageProcessor implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Queueable;
 
     /**
      * Create a new job instance.
@@ -25,6 +22,7 @@ class ImageProcessor implements ShouldQueue
 
     /**
      * Execute the job.
+     * @throws \Throwable
      */
     public function handle(): void
     {
@@ -40,21 +38,23 @@ class ImageProcessor implements ShouldQueue
         }
 
         $jobs = [];
-        $sizes = [100, 300, 700];
+        $sizes = [100, 300];
 
         foreach ($sizes as $size) {
             $jobs[] = new ImageResize($filepath, $size);
         }
 
-        // sequential
-        Bus::chain([
+        // parallel
+        $email = $this->email;// to prevent $this to be serialized
+
+        Bus::batch([
             ...$jobs,
-            new SendImagesInEmail($this->email, $filepath, $sizes),
-            function() {
-                // another background job
-            }
-        ])->catch(function() {
-            // do something
+        ])->then(function(Batch $batch) use ($filepath, $sizes, $email) {
+            SendImagesInEmail::dispatch($email, $filepath, $sizes);
+        })->catch(function (Batch $batch, Throwable $e) {
+            dd($e->getMessage());
         })->dispatch();
+
+        //$this->dispatch('image-processed');
     }
 }

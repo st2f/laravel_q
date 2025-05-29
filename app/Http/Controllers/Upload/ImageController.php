@@ -48,11 +48,11 @@ class ImageController extends Controller
             die('Could not upload image: ' . $th->getMessage() . PHP_EOL);
         }
 
-        try {
+        //try {
             ImageProcessor::dispatch($request->user()->email, $filename);
-        } catch (\Throwable $th) {
-            die('Could not process image: ' . $th->getMessage() . PHP_EOL);
-        }
+//        } catch (\Throwable $th) {
+//            die('Could not process image: ' . $th->getMessage() . PHP_EOL);
+//        }
 
         return to_route('image.add');
     }
