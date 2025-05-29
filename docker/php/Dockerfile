@@ -4,6 +4,7 @@ FROM php:8.3-fpm
 RUN apt-get update && apt-get install -y \
   git \
   curl \
+  libjpeg-dev \
   libpng-dev \
   libonig-dev \
   libxml2-dev \
@@ -12,13 +13,11 @@ RUN apt-get update && apt-get install -y \
   zip \
   unzip \
   default-mysql-client
-  # php8.3-dom \
-  # php8.3-mysql \
-  # php8.3-xml \
-  # php8.3-mbstring
 
 # Clean up to reduce image size
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-configure gd --enable-gd --with-jpeg
 
 # Install PHP extensions
 RUN docker-php-ext-install \

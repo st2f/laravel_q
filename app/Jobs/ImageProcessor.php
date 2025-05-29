@@ -15,22 +15,11 @@ class ImageProcessor implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private $email;
-    private $filepath;
-
     /**
      * Create a new job instance.
      */
-    public function __construct(string $email, string $filepath)
+    public function __construct(public string $email, public string $filename)
     {
-        $this->email = $email;
-        $this->filepath = storage_path('app/public/') . $filepath;
-
-        if (!file_exists($this->filepath)) {
-            throw ValidationException::withMessages([
-                'filepath' => 'Filepath does not exist: ' . $this->filepath,
-            ]);
-        }
     }
 
     /**
@@ -38,17 +27,28 @@ class ImageProcessor implements ShouldQueue
      */
     public function handle(): void
     {
-        //dd($this->email, $this->filepath);
-        try {
-            $sendUserImage = new SendUserImage();
-            $sendUserImage->attach($this->filepath);
+        //dd($this->email, $this->filename);
 
-            Mail::to($this->email)
-                ->send($sendUserImage);
+        $info = pathinfo(storage_path('app/public/') . $this->filename);
+        $filepath = $info['dirname'] . '/' . $info['basename'];
 
-        } catch (\Throwable $th) {
-            die('Could not send email: ' . $th->getMessage());
+        if (!file_exists($filepath)) {
+            throw ValidationException::withMessages([
+                'filepath' => 'Filepath does not exist: ' . $filepath,
+            ]);
         }
 
+        ImageResize::dispatch($filepath, 500);
+        ImageResize::dispatch($filepath, 600);
+        ImageResize::dispatch($filepath, 700);
+
+        $sendUserImage = new SendUserImage();
+        $sendUserImage
+            ->attach(ImageResize::newFilename($info, 500))
+            ->attach(ImageResize::newFilename($info, 600))
+            ->attach(ImageResize::newFilename($info, 700));
+
+        Mail::to($this->email)
+            ->send($sendUserImage);
     }
 }

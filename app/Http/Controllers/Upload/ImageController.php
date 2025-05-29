@@ -44,10 +44,14 @@ class ImageController extends Controller
                 'upload' . '/' . $request->user()->id,
                 'public'
             );
-            ImageProcessor::dispatch($request->user()->email, $filename);
-
         } catch (\Throwable $th) {
-            die('Could not upload image: ' . $th->getMessage());
+            die('Could not upload image: ' . $th->getMessage() . PHP_EOL);
+        }
+
+        try {
+            ImageProcessor::dispatch($request->user()->email, $filename);
+        } catch (\Throwable $th) {
+            die('Could not process image: ' . $th->getMessage() . PHP_EOL);
         }
 
         return to_route('image.add');
