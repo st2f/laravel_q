@@ -23,19 +23,18 @@ class ImageResize implements ShouldQueue
      */
     public function handle(): void
     {
-        $info = pathinfo($this->filepath);
-
         // create image manager with desired driver
         $manager = new ImageManager(new Driver());
 
         $image = $manager->read($this->filepath);
         $image->scale(height: $this->size);
         $encoded = $image->toJpg();
-        $encoded->save( self::newFilename($info, $this->size));
+        $encoded->save( self::newFilename($this->filepath, $this->size));
     }
 
-    public static function newFilename($info, $size): string
+    public static function newFilename($filepath, $size): string
     {
+        $info = pathinfo($filepath);
         return $info['dirname'] . '/' . $info['filename'] . '-' . $size . '.jpg' ;
     }
 }

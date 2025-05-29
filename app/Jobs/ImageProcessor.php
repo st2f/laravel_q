@@ -8,6 +8,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
@@ -38,17 +39,22 @@ class ImageProcessor implements ShouldQueue
             ]);
         }
 
-        ImageResize::dispatch($filepath, 500);
-        ImageResize::dispatch($filepath, 600);
-        ImageResize::dispatch($filepath, 700);
+        $jobs = [];
+        $sizes = [100, 300, 700];
 
-        $sendUserImage = new SendUserImage();
-        $sendUserImage
-            ->attach(ImageResize::newFilename($info, 500))
-            ->attach(ImageResize::newFilename($info, 600))
-            ->attach(ImageResize::newFilename($info, 700));
+        foreach ($sizes as $size) {
+            $jobs[] = new ImageResize($filepath, $size);
+        }
 
-        Mail::to($this->email)
-            ->send($sendUserImage);
+        // sequential
+        Bus::chain([
+            ...$jobs,
+            new SendImagesInEmail($this->email, $filepath, $sizes),
+            function() {
+                // another background job
+            }
+        ])->catch(function() {
+            // do something
+        })->dispatch();
     }
 }
