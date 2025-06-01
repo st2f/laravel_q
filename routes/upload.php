@@ -5,12 +5,9 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::middleware('auth')->group(function () {
-
-    Route::get('upload', [ImageController::class, 'add'])->name('image.add');
-    Route::post('upload', [ImageController::class, 'store'])->name('image.store');
-    Route::post('upload/delete/{id}', [ImageController::class, 'destroy'])->name('image.destroy');
-
-    Route::get('upload/list', function () {
-        return Inertia::render('upload/List');
-    })->name('image.list');
+    Route::get('/upload', [ImageController::class, 'add'])->name('image.add');
+    Route::post('/upload', [ImageController::class, 'store'])->name('image.store');
+    Route::get('/api/user/images', [ImageController::class, 'list'])->name('images.list');
+    Route::get('/upload/{file}', [ImageController::class, 'show'])->name('image.show');
+    Route::post('/upload/delete/{file}', [ImageController::class, 'destroy'])->name('image.destroy');
 });
