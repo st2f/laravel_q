@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Custom Disk for Image Uploads
+    |--------------------------------------------------------------------------
+    |
+    | This allows you to configure a dedicated disk for your image uploads,
+    | which may differ from the default. You can switch from local to S3
+    | without changing code by setting IMAGE_DISK in your .env file.
+    |
+    */
+
+    'image_disk' => env('IMAGE_DISK', 'public'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Filesystem Disks
     |--------------------------------------------------------------------------
     |

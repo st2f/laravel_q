@@ -3,6 +3,18 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+//Route::get('benchmark', function() {
+//    \Illuminate\Support\Benchmark::dd([
+//        fn () => WordProcessor::dispatch(),
+//        fn () => WordProcessor::dispatch(),
+//    ]);
+//    // res
+//    //    [
+//    //        2330,
+//    //        5211
+//    //    ]
+//});
+
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');

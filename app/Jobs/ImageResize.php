@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\SkipIfBatchCancelled;
 use Illuminate\Queue\SerializesModels;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
@@ -27,6 +28,11 @@ class ImageResize implements ShouldQueue
      */
     public function handle(): void
     {
+        // option 1
+        //if ($this->batch()->cancelled()) {
+        //return;
+        //}
+
         // create image manager with desired driver
         $manager = new ImageManager(new Driver());
 
@@ -40,5 +46,10 @@ class ImageResize implements ShouldQueue
     {
         $info = pathinfo($filepath);
         return $info['dirname'] . '/' . $info['filename'] . '-' . $size . '.jpg' ;
+    }
+
+    // option 2
+    public function middleware(){
+        return [SkipIfBatchCancelled::class];
     }
 }

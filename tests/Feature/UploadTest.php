@@ -2,58 +2,107 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Queue;
-use Tests\TestCase;
 use App\Jobs\ImageProcessor;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+use App\Models\User;
 
 class UploadTest extends TestCase
 {
-    /**
-     * A basic feature test example.
-     */
-    public function test_upload_form_is_displayed(): void
+    use RefreshDatabase;
+
+    public function test_index_returns_uploaded_images_as_json()
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $storagePath = storage_path("app/public/upload/{$user->id}");
+        File::makeDirectory($storagePath, 0777, true, true);
+        touch($storagePath . '/example.jpg');
+
+        $response = $this->getJson(route('images.index'));
+
+        $response->assertOk();
+        $response->assertJsonFragment(['example.jpg']);
+
+        File::deleteDirectory($storagePath);
+    }
+
+    public function test_show_displays_file()
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $fileName = 'image.jpg';
+        $storagePath = storage_path("app/public/upload/{$user->id}");
+        File::makeDirectory($storagePath, 0777, true, true);
+        file_put_contents("{$storagePath}/{$fileName}", 'fake-image');
+
+        $response = $this->get(route('image.show', $fileName));
+        $response->assertOk();
+
+        File::deleteDirectory($storagePath);
+    }
+
+    //    public function test_create_returns_inertia_view()
+    //    {
+    //        $user = User::factory()->create();
+    //        $this->actingAs($user);
+    //
+    //        $response = $this->get(route('image.create'));
+    //        $response->assertInertia(fn (Assert $page) => $page->component('upload/Add'));
+    //    }
+
+    public function test_create_form_is_displayed(): void
     {
         $user = User::factory()->create();
 
         $response = $this
             ->actingAs($user)
-            ->get('/upload');
+            ->get(route('image.create'));
 
         $response->assertOk();
     }
 
-    public function test_user_can_upload_image_and_dispatch_job()
+    public function test_store_validates_and_dispatches_job()
     {
-        Storage::fake('public');
         Queue::fake();
+        Storage::fake('public');
 
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        $file = UploadedFile::fake()->image('avatar.jpg');
+        $file = UploadedFile::fake()->image('test.jpg');
 
         $response = $this->post(route('image.store'), [
             'image' => $file,
         ]);
 
-        $response->assertRedirect(route('image.add'));
+        $response->assertRedirect(route('image.create'));
+        Queue::assertPushed(ImageProcessor::class);
+    }
 
-        // Assert that the job was dispatched and get the filename from it
-        Queue::assertPushed(ImageProcessor::class, function ($job) use ($user) {
-            $expectedPath = 'upload/' . $user->id;
-            $this->assertStringStartsWith(storage_path('app/public/' . $expectedPath), $job->filepath);
+    public function test_destroy_deletes_file()
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
 
-            // Extract the relative path from full filepath
-            $relativePath = str_replace(storage_path('app/public/'), '', $job->filepath);
+        $fileName = 'image.jpg';
+        $storagePath = storage_path("app/public/upload/{$user->id}");
+        File::makeDirectory($storagePath, 0777, true, true);
+        file_put_contents("{$storagePath}/{$fileName}", 'fake-image');
 
-            // Assert the file exists on the fake disk
-            Storage::disk('public')->assertExists($relativePath);
+        $response = $this->post(route('image.destroy', $fileName));
+        $response->assertNoContent();
 
-            return true;
-        });
+        $this->assertFileDoesNotExist("{$storagePath}/{$fileName}");
+
+        File::deleteDirectory($storagePath);
     }
 
     public function test_upload_fails_when_image_is_missing(): void

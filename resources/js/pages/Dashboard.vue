@@ -17,7 +17,7 @@ const loading = ref(true)
 
 const fetchImages = async () => {
     try {
-        const response = await axios.get(route('images.list'))
+        const response = await axios.get(route('images.index'))
         images.value = response.data
     } finally {
         loading.value = false

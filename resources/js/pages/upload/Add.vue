@@ -57,6 +57,8 @@ const submit = () => {
                         </Transition>
                     </div>
                 </form>
+                <!-- <pre class="text-xs text-red-500">{{ form.errors }}</pre>-->
+
             </div>
 
     </AppLayout>
