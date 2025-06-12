@@ -2,5 +2,5 @@
 
 return [
     App\Providers\AppServiceProvider::class,
-    App\Providers\ImageStorageService::class,
+    App\Providers\UserStorageService::class,
 ];

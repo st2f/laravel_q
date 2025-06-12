@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Services\ImageStorageService;
+use App\Services\UserStorageService;
 use Illuminate\Bus\Batch;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,10 +17,10 @@ class ImageProcessor implements ShouldQueue
         public string $email,
         public string $filename
     ){}
-    
+
     public function handle(): void
     {
-        $basePath = resolve(ImageStorageService::class)->basePath();
+        $basePath = resolve(UserStorageService::class)->basePath();
         $info = pathinfo($basePath . '/' . $this->filename);
         $filepath = $info['dirname'] . '/' . $info['basename'];
 
@@ -44,13 +44,7 @@ class ImageProcessor implements ShouldQueue
             SendImagesInEmail::dispatch($email, $filepath, $sizes);
         })->catch(function (Batch $batch, Throwable $e) {
             dd($e->getMessage());
-        })//->name(name: 'send-user-email')
-            //->onConnection('redis')
-            //->onQueue('send-email')
-            //->allowFailures()// this will ignore batch->cancelled
-            ->dispatch();
-
-        // you can mix batch inside chain and vice versa
+        })->dispatch();
 
         //$this->dispatch('image-processed');
     }

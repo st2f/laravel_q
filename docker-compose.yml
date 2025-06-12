@@ -13,6 +13,12 @@ services:
         networks:
             - website3
 
+    redis_q:
+        image: redis:alpine
+        container_name: redis_q
+        networks:
+            - website3
+
     php_q:
         build:
             context: .
@@ -20,6 +26,8 @@ services:
         container_name: php_q
         volumes:
             - ./:/var/www
+        depends_on:
+            - redis_q
         networks:
             - website3
         environment:

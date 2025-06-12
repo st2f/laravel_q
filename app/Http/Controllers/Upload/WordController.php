@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Upload;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\ImageProcessor;
+use App\Jobs\WordProcessor;
 use App\Services\UserStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -11,7 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class ImageController extends Controller
+class WordController extends Controller
 {
     public function __construct(private UserStorageService $userStorage) {}
 
@@ -33,23 +33,23 @@ class ImageController extends Controller
 
     public function create(Request $request): Response
     {
-        return Inertia::render('upload/Add');
+        return Inertia::render('uploadWord/Add');
     }
 
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'image' => 'required|file|max:2048|mimes:jpg,png',
+            'doc' => 'required|file|max:2048|mimes:docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ]);
 
         $filename = $this->userStorage->storeUploadedFile(
             $request->user()->id,
-            $request->file('image')
+            $request->file('doc')
         );
 
-        ImageProcessor::dispatch($request->user()->email, $filename);
+        WordProcessor::dispatch($request->user()->email, $filename);
 
-        return to_route('image.create');
+        return to_route('word.create');
     }
 
     public function destroy(Request $request, string $file)

@@ -10,17 +10,17 @@ import { type BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Upload image',
-        href: '/upload',
+        title: 'Upload World',
+        href: '/upload-word',
     },
 ];
 
 const form = useForm({
-    image: '',
+    doc: '',
 });
 
 const submit = () => {
-    form.post(route('image.store'), {
+    form.post(route('word.store'), {
         preserveScroll: true,
     });
 };
@@ -28,20 +28,20 @@ const submit = () => {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Upload an image" />
+        <Head title="Upload a word file" />
 
             <div class="flex flex-col space-y-6 px-10 py-5">
-                <HeadingSmall title="Add an image" />
+                <HeadingSmall title="Add a word file" />
 
                 <form @submit.prevent="submit" class="space-y-6">
 
                     <div class="grid w-full max-w-sm items-center gap-1.5">
-                        <Label for="picture">Picture</Label>
-                        <Input id="picture" type="file" @input="form.image = $event.target.files[0]" />
+                        <Label for="doc">Word document</Label>
+                        <Input id="doc" type="file" @input="form.doc = $event.target.files[0]" accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword" />
                         <progress v-if="form.progress" :value="form.progress.percentage" max="100">
                             {{ form.progress.percentage }}%
                         </progress>
-                        <InputError class="mt-2" :message="form.errors.image" />
+                        <InputError class="mt-2" :message="form.errors.doc" />
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -57,7 +57,7 @@ const submit = () => {
                         </Transition>
                     </div>
                 </form>
-                <!-- <pre class="text-xs text-red-500">{{ form.errors }}</pre>-->
+                <pre class="text-xs text-red-500">{{ form.errors }}</pre>
 
             </div>
 

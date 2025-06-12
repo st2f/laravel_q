@@ -4,7 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Storage;
 
-class ImageStorageService
+class UserStorageService
 {
     private string $disk;
     private string $uploadDir;
