@@ -20,7 +20,8 @@ class ImageProcessor implements ShouldQueue
 
     public function handle(): void
     {
-        $basePath = resolve(UserStorageService::class)->basePath();
+        $storage = resolve(UserStorageService::class);
+        $basePath = $storage->basePath();
         $info = pathinfo($basePath . '/' . $this->filename);
         $filepath = $info['dirname'] . '/' . $info['basename'];
 

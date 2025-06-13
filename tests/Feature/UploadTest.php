@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use \App\Jobs\ImageResize;
 use App\Jobs\ImageProcessor;
+use App\Services\UserStorageService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -49,6 +51,7 @@ class UploadTest extends TestCase
         File::deleteDirectory($storagePath);
     }
 
+    // this is not working inertia bug maybe
     //    public function test_create_returns_inertia_view()
     //    {
     //        $user = User::factory()->create();
@@ -123,5 +126,42 @@ class UploadTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors(['image']);
+    }
+
+    public function test_job_processes_file()
+    {
+        Storage::fake('public');
+
+        // Bind UserStorageService to point to fake disk path
+        $basePath = Storage::disk('public')->path('users/user@example.com');
+        $this->app->instance(UserStorageService::class, new class($basePath) extends UserStorageService {
+            public function __construct(private string $fakeBasePath) {}
+            public function basePath(): string {
+                return $this->fakeBasePath;
+            }
+        });
+
+        // Put original fake image
+        $filename = 'file.jpg';
+        Storage::disk('public')->putFileAs('users/user@example.com', UploadedFile::fake()->image($filename), $filename);
+
+        // Create and run the ImageProcessor job (which dispatches batch jobs)
+        $job = new ImageProcessor('user@example.com', $filename);
+
+        // Instead of dispatch(), call handle() directly to synchronously run batch dispatch
+        $job->handle();
+
+        // manually run the ImageResize jobs that would have been dispatched:
+        $originalFilePath = $basePath . '/' . $filename;
+        foreach ([100, 300] as $size) {
+            $resizeJob = new ImageResize($originalFilePath, $size);
+            $resizeJob->handle();
+        }
+
+        // Assert resized images exist
+        foreach ([100, 300] as $size) {
+            $resizedFile = 'users/user@example.com/file-' . $size . '.jpg';
+            Storage::disk('public')->assertExists($resizedFile);
+        }
     }
 }
