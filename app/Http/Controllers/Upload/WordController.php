@@ -47,7 +47,8 @@ class WordController extends Controller
             $request->file('doc')
         );
 
-        WordProcessor::dispatch($request->user()->email, $filename);
+        WordProcessor::dispatch($request->user()->email, $filename)
+            ->onQueue('pdf');
 
         return to_route('word.create');
     }

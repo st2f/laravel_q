@@ -40,5 +40,7 @@ class WordProcessor implements ShouldQueue {
 
         \Mail::to($this->email)->send($sendUsersPdf);
         unlink($filepath);
+
+        //$this->dispatch('word-processed');
     }
 }
