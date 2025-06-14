@@ -8,8 +8,8 @@ use Illuminate\Bus\Batch;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Redis;
 
 class ImageProcessor implements ShouldQueue
 {
@@ -59,6 +59,9 @@ class ImageProcessor implements ShouldQueue
 
     public function middleware(): array
     {
-        return [BackgroundJobLimiter::class];
+        //return [BackgroundJobLimiter::class];
+        return [
+            new RateLimited('background-jobs')
+        ];
     }
 }
