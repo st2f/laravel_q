@@ -2,12 +2,14 @@
 
 namespace App\Jobs;
 
+use App\Jobs\Middleware\BackgroundJobLimiter;
 use App\Services\UserStorageService;
 use Illuminate\Bus\Batch;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Redis;
 
 class ImageProcessor implements ShouldQueue
 {
@@ -20,6 +22,7 @@ class ImageProcessor implements ShouldQueue
 
     public function handle(): void
     {
+
         $storage = resolve(UserStorageService::class);
         $basePath = $storage->basePath();
         $info = pathinfo($basePath . '/' . $this->filename);
@@ -39,14 +42,23 @@ class ImageProcessor implements ShouldQueue
         // parallel : if a job failed, others will continue
         $email = $this->email;// to prevent $this to be serialized
 
-        Bus::batch([
+        $pendingBatch = Bus::batch([
             ...$jobs,
         ])->then(function(Batch $batch) use ($filepath, $sizes, $email) {
             SendImagesInEmail::dispatch($email, $filepath, $sizes);
         })->catch(function (Batch $batch, Throwable $e) {
-            dd($e->getMessage());
+            //dd($e->getMessage());
         })->dispatch();
 
+        // Bus::chain([
+        //  $pendingBatch
+        // ])->dispatch();
+
         //$this->dispatch('image-processed');
+    }
+
+    public function middleware(): array
+    {
+        return [BackgroundJobLimiter::class];
     }
 }
