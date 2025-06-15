@@ -10,7 +10,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
-use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 use App\Models\User;
 
@@ -50,16 +49,6 @@ class UploadTest extends TestCase
 
         File::deleteDirectory($storagePath);
     }
-
-    // this is not working inertia bug maybe
-    //    public function test_create_returns_inertia_view()
-    //    {
-    //        $user = User::factory()->create();
-    //        $this->actingAs($user);
-    //
-    //        $response = $this->get(route('image.create'));
-    //        $response->assertInertia(fn (Assert $page) => $page->component('upload/Add'));
-    //    }
 
     public function test_create_form_is_displayed(): void
     {
