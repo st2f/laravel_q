@@ -13,25 +13,25 @@ use Inertia\Response;
 
 class ImageController extends Controller
 {
-    public function __construct(private UserStorageService $userStorage) {}
+    public function __construct(private UserStorageService $userStorage){}
 
-    public function index(Request $request): JsonResponse
+    public function index(): JsonResponse
     {
-        $path = $this->userStorage->userPath($request->user()->id);
+        $path = $this->userStorage->getPath('');
         $files = glob($path . '/*.jpg', GLOB_BRACE) ?: [];
 
         return response()->json(array_map('basename', $files));
     }
 
-    public function show(Request $request, string $file)
+    public function show(string $file)
     {
-        $path = $this->userStorage->fullPath($request->user()->id, $file);
-        abort_unless(file_exists($path), 404);
+        abort_unless($this->userStorage->exists($file), 404);
+        $path = $this->userStorage->getPath($file);
 
-        return response()->file($path); // or response()->download($path)
+        return response()->file($path);
     }
 
-    public function create(Request $request): Response
+    public function create(): Response
     {
         return Inertia::render('upload/Add');
     }
@@ -42,22 +42,20 @@ class ImageController extends Controller
             'image' => 'required|file|max:2048|mimes:jpg,png',
         ]);
 
-        $filename = $this->userStorage->storeUploadedFile(
-            $request->user()->id,
+        $storedPath = $this->userStorage->storeUploadedFile(
             $request->file('image')
         );
 
-        ImageProcessor::dispatch($request->user()->email, $filename);
+        ImageProcessor::dispatch($request->user()->email, basename($storedPath));
 
         return to_route('image.create');
     }
 
-    public function destroy(Request $request, string $file)
+    public function destroy(string $file)
     {
-        $path = $this->userStorage->fullPath($request->user()->id, $file);
-        abort_unless(file_exists($path), 404);
+        abort_unless($this->userStorage->exists($file), 404);
 
-        $this->userStorage->delete($request->user()->id, $file);
+        $this->userStorage->delete($file);
 
         return response()->noContent();
     }

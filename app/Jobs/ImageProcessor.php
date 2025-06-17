@@ -3,19 +3,23 @@
 namespace App\Jobs;
 
 use App\Jobs\Middleware\BackgroundJobLimiter;
+use App\Models\User;
 use App\Services\UserStorageService;
 use Illuminate\Bus\Batch;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\Middleware\ThrottlesExceptions;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
+use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Bus;
 
 class ImageProcessor implements ShouldQueue
 {
-    use Batchable, Queueable;
+    use Dispatchable, Batchable, Queueable, InteractsWithQueue, SerializesModels;
 
     public function __construct(
         public string $email,
@@ -24,15 +28,14 @@ class ImageProcessor implements ShouldQueue
 
     public function handle(): void
     {
+        $user = User::where('email', $this->email)->firstOrFail();
 
-        $storage = resolve(UserStorageService::class);
-        $basePath = $storage->basePath();
-        $info = pathinfo($basePath . '/' . $this->filename);
-        $filepath = $info['dirname'] . '/' . $info['basename'];
-
-        if (!file_exists($filepath)) {
+        if (!$user->id || !$this->filename) {
             $this->batch()->cancel();
         }
+
+        $storage = UserStorageService::forUser($user->id);
+        $filepath = $storage->prepareLocalFile($this->filename);
 
         $jobs = [];
         $sizes = [100, 300];
@@ -44,19 +47,13 @@ class ImageProcessor implements ShouldQueue
         // parallel : if a job failed, others will continue
         $email = $this->email;// to prevent $this to be serialized
 
-        $pendingBatch = Bus::batch([
+        Bus::batch([
             ...$jobs,
         ])->then(function(Batch $batch) use ($filepath, $sizes, $email) {
             SendImagesInEmail::dispatch($email, $filepath, $sizes);
-        })->catch(function (Batch $batch, Throwable $e) {
+        })->catch(function (Batch $batch, \Throwable $e) {
             //dd($e->getMessage());
         })->dispatch();
-
-        // Bus::chain([
-        //  $pendingBatch
-        // ])->dispatch();
-
-        //$this->dispatch('image-processed');
     }
 
     public function middleware(): array
@@ -79,7 +76,7 @@ class ImageProcessor implements ShouldQueue
             //(new ThrottlesExceptions(2, 60))->backoff(30),
 
             // add penalty (ex bad/costly external api service) way 2 - see retryUntil()
-            new ThrottlesExceptions(2, 60),
+            //new ThrottlesExceptions(2, 60),
 
         ];
     }
@@ -87,6 +84,6 @@ class ImageProcessor implements ShouldQueue
     public function retryUntil()
     {
         // in combination with new ThrottlesExceptions(2, 60), after 2 attempts in 60 sec, it will retry in 30 sec
-        return now()->addSeconds(30);
+        //return now()->addSeconds(30);
     }
 }

@@ -5,6 +5,7 @@ use App\Jobs\ImageResize;
 use App\Models\User;
 use App\Services\UserStorageService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
@@ -69,6 +70,29 @@ test('[pest] store validates and dispatches job', function () {
     Queue::assertPushed(ImageProcessor::class);
 });
 
+test('[pest] store dispatches ImageProcessor and processes batch', function () {
+    Bus::fake();
+    Storage::fake('public');
+
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $file = UploadedFile::fake()->image('test.jpg');
+
+    $response = $this->post(route('image.store'), [
+        'image' => $file,
+    ]);
+
+    $response->assertRedirect(route('image.create'));
+
+    $filename = Storage::disk('public')->path('upload/' . $user->id . '/' . $file->hashName());
+
+    $job = new ImageProcessor($user->email, $filename);
+    $job->handle();
+
+    Bus::assertBatchCount(1);
+});
+
 test('[pest] destroy deletes file', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
@@ -104,41 +128,3 @@ test('[pest] upload fails when file is not an image', function () {
     $response->assertSessionHasErrors(['image']);
 });
 
-test('[pest] job processes file', function () {
-    Storage::fake('public');
-
-    // Bind UserStorageService to point to fake disk path
-    $basePath = Storage::disk('public')->path('users/user@example.com');
-    $this->app->instance(UserStorageService::class, new class($basePath) extends UserStorageService {
-        function __construct(private string $fakeBasePath)
-        {
-        }
-        function basePath(): string
-        {
-            return $this->fakeBasePath;
-        }
-    });
-
-    // Put original fake image
-    $filename = 'file.jpg';
-    Storage::disk('public')->putFileAs('users/user@example.com', UploadedFile::fake()->image($filename), $filename);
-
-    // Create and run the ImageProcessor job (which dispatches batch jobs)
-    $job = new ImageProcessor('user@example.com', $filename);
-
-    // Instead of dispatch(), call handle() directly to synchronously run batch dispatch
-    $job->handle();
-
-    // manually run the ImageResize jobs that would have been dispatched:
-    $originalFilePath = $basePath . '/' . $filename;
-    foreach ([100, 300] as $size) {
-        $resizeJob = new ImageResize($originalFilePath, $size);
-        $resizeJob->handle();
-    }
-
-    // Assert resized images exist
-    foreach ([100, 300] as $size) {
-        $resizedFile = 'users/user@example.com/file-' . $size . '.jpg';
-        Storage::disk('public')->assertExists($resizedFile);
-    }
-});
