@@ -15,6 +15,12 @@ use Inertia\Inertia;
 //    //    ]
 //});
 
+Horizon::auth(function ($request) {
+    return in_array($request->user()->email,
+        explode(',', env('HORIZON_EMAIL'))
+    );
+});
+
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');

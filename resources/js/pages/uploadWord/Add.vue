@@ -10,7 +10,7 @@ import { type BreadcrumbItem } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Upload World',
+        title: 'World to PDF',
         href: '/upload-word',
     },
 ];

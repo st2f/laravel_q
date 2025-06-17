@@ -41,14 +41,13 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY ./docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 
-COPY ./docker/supervisor/supervisord.conf /etc/supervisord.conf
-
 RUN mkdir -p /var/log/supervisor /var/run/supervisor
+COPY ./docker/supervisor/. /etc/supervisor/
 
 WORKDIR /var/www
 
 # Use Supervisor as the container's entry point
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 # CMD ["php-fpm"]
 
 EXPOSE 9000
