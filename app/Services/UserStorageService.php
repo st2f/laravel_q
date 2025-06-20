@@ -6,6 +6,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Str;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 
 class UserStorageService
@@ -35,7 +36,14 @@ class UserStorageService
 
     public function storeUploadedFile(UploadedFile $file): string
     {
-        return $file->store($this->getUserDir(), $this->diskName);
+        //return $file->store($this->getUserDir(), $this->diskName);
+        $timestamp = now()->format('Ymd_His');
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $extension = $file->getClientOriginalExtension();
+
+        $filename = Str::slug($originalName) . '_' . $timestamp . '.' . $extension;
+
+        return $file->storeAs($this->getUserDir(), $filename, $this->diskName);
     }
 
     public function getPath(string $filename): string

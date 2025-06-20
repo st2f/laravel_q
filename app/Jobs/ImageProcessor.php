@@ -38,7 +38,7 @@ class ImageProcessor implements ShouldQueue
         $filepath = $storage->prepareLocalFile($this->filename);
 
         $jobs = [];
-        $sizes = [100, 300];
+        $sizes = [100, 300, 700];
 
         foreach ($sizes as $size) {
             $jobs[] = new ImageResize($filepath, $size);

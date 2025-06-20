@@ -49,7 +49,7 @@ class WordController extends Controller
         WordProcessor::dispatch($request->user()->email, basename($storedPath))
             ->onQueue('pdf');
 
-        return to_route('word.create');
+        return to_route('doc.create');
     }
 
     public function destroy(string $file)
